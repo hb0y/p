@@ -1,56 +1,61 @@
 import streamlit as st
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
+import requests
 import time
 
-st.set_page_config(page_title="Bot Hunter V1", page_icon="🤖")
+st.set_page_config(page_title="MS Ultra Hunter", page_icon="🎯")
 
-st.title("🤖 BOT HUNTER: DIRECT CHECK")
+st.markdown("""
+    <style>
+    body { background-color: #000; color: #fff; }
+    .stButton>button { background: linear-gradient(45deg, #ff0000, #990000); color:white; border:none; height:50px; width:100%; border-radius:10px; font-weight:bold; }
+    .result-box { padding:15px; border-radius:10px; margin-bottom:10px; background:#111; border-left: 5px solid #ff0000; }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.title("🎯 MS ULTRA HUNTER")
 st.write("---")
 
-emails_input = st.text_area("PASTE YOUR EMAILS TO HUNT:", height=200)
+emails_input = st.text_area("PASTE EMAILS (NO API / NO BROWSER):", height=200)
 
-if st.button("START FAST HUNTING"):
+if st.button("START DEEP SCAN"):
     if not emails_input:
-        st.warning("Paste emails first!")
+        st.warning("Please paste emails!")
     else:
         email_list = [e.strip() for e in emails_input.splitlines() if e.strip()]
+        st.info(f"🔍 Scanning {len(email_list)} emails using MS Pre-Auth Bypass...")
         
-        # إعدادات المتصفح الخفي (السريع)
-        chrome_options = Options()
-        chrome_options.add_argument("--headless") # تشغيل بدون واجهة لزيادة السرعة
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        
-        st.info("🚀 Launching the Bot... Please wait.")
-        
-        try:
-            # تشغيل المتصفح مرة واحدة
-            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        for email in email_list:
+            # رابط الفحص الرسمي من مايكروسوفت (المستخدم في التطبيقات)
+            url = "https://login.microsoftonline.com/common/GetCredentialType"
             
-            for email in email_list:
-                driver.get("https://login.live.com/signup")
-                time.sleep(1) # ننتظر التحميل
+            payload = {
+                "username": email,
+                "isOtherIdpSupported": True,
+                "checkRemoteGWContext": True,
+                "type": 1,
+                "flowToken": "1"
+            }
+            
+            try:
+                # محاكاة طلب من متصفح حقيقي لتجنب الحظر
+                headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+                response = requests.post(url, json=payload, headers=headers)
+                data = response.json()
                 
-                input_box = driver.find_element(By.ID, "MemberName")
-                input_box.clear()
-                input_box.send_keys(email)
-                input_box.send_keys(Keys.ENTER)
-                time.sleep(1.5) # وقت كافٍ لظهور رد الفعل
+                # IfExistsResult == 0 يعني الإيميل موجود (Taken)
+                # IfExistsResult == 5 يعني الإيميل غير موجود (Available)
+                result = data.get("IfExistsResult")
                 
-                source = driver.page_source
-                if "is already taken" in source or "Someone already" in source:
-                    st.error(f"❌ {email} - TAKEN")
+                if result == 5:
+                    st.success(f"✅ AVAILABLE: {email}")
+                elif result == 0:
+                    st.error(f"❌ TAKEN: {email}")
                 else:
-                    st.success(f"✅ {email} - AVAILABLE")
-                    # حفظ الصيد في ملف جانبي أو عرضه بشكل مميز
+                    st.warning(f"⚠️ UNKNOWN: {email}")
+                    
+            except:
+                st.write(f"Error checking {email}")
             
-            driver.quit()
-            st.balloons()
-            
-        except Exception as e:
-            st.error(f"Something went wrong: {e}")
+            time.sleep(0.5) # سرعة خرافية مع أمان
+
+        st.balloons()
