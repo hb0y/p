@@ -1,27 +1,40 @@
-import streamlit as st
-import requests
+import os
 
-st.set_page_config(page_title="PSN Scanner", page_icon="🎮")
-st.title("🎮 أداة سحب معلومات الآيدي (النسخة المستقرة)")
+# محاولة تثبيت المكتبة تلقائياً إذا كانت ناقصة
+try:
+    from psnaw_client import PSNAW
+except ImportError:
+    print("جاري تثبيت المكتبات المطلوبة... انتظر لحظة")
+    os.system('pip install psnaw_client')
+    from psnaw_client import PSNAW
 
-npsso = st.text_input("كود NPSSO:", type="password")
-target_id = st.text_input("الآيدي المستهدف:")
+import datetime
 
-if st.button("سحب البيانات ✨"):
-    if npsso and target_id:
-        try:
-            # 1. الحصول على Access Token
-            auth_url = "https://ca.account.sony.com/api/v1/ssocookie"
-            headers = {"Cookie": f"npsso={npsso}"}
-            # (ملاحظة: هذا المنطق يحتاج اتصال مباشر بسوني، السيرفرات السحابية قد تواجه حظر IP)
-            
-            st.info("جاري محاولة الاتصال بخوادم سوني... تأكد من صحة الـ NPSSO")
-            
-            # عرض رسالة توضيحية للمستخدم
-            st.warning("إذا ظهر لك خطأ هنا، فالمشكلة أن خوادم Streamlit محظورة من سوني.")
-            st.error("ملاحظة: سوني تمنع السحب من السيرفرات العامة (Data Centers).")
-            
-        except Exception as e:
-            st.error(f"حدث خطأ في النظام: {e}")
-    else:
-        st.warning("دخل بياناتك أول.")
+def s_tool():
+    print("--- PSN ID SCANNER ---")
+    npsso = input("أدخل كود NPSSO: ")
+    target = input("أدخل الآيدي المستهدف: ")
+
+    try:
+        client = PSNAW(npsso)
+        user = client.user(online_id=target)
+        presence = user.get_presence()
+        
+        print("\n" + "="*30)
+        print(f"ID: {user.online_id}")
+        print(f"Region: {user.region.upper()}")
+        print(f"Avatar: {user.avatar_url}")
+        
+        last_seen = presence.get("last_available_date")
+        if last_seen:
+            dt = datetime.datetime.fromisoformat(last_seen.replace('Z', '+00:00'))
+            print(f"Last Seen: {dt.strftime('%Y-%m-%d %H:%M')}")
+        else:
+            print("Last Seen: Private")
+        print("="*30)
+    except Exception as e:
+        print(f"خطأ: {e}")
+
+if __name__ == "__main__":
+    s_tool()
+    input("\nاضغط Enter للخروج...")
