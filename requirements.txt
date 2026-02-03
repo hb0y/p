@@ -1,2 +1,1 @@
-psnaw_client==1.4.0
-requests
+psnaw-client==1.4.0
