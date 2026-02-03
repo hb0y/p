@@ -1,90 +1,78 @@
 import streamlit as st
-import random
-import string
 import requests
 import time
 
-# --- تصميم الواجهة ---
-st.set_page_config(page_title="Turbo Checker v2", page_icon="🔴", layout="centered")
+# --- إعدادات الواجهة الرهيبة ---
+st.set_page_config(page_title="Ultra Email Checker", page_icon="🛡️", layout="centered")
 
 st.markdown("""
     <style>
     body { background-color: #000000; color: #ffffff; }
-    .stButton>button { background-color: #ff0000; color: white; width: 100%; border-radius: 10px; font-weight: bold; height: 50px; border: none; }
-    .stButton>button:hover { background-color: #cc0000; box-shadow: 0px 0px 20px #ff0000; }
-    .result-box { padding: 10px; border-radius: 5px; margin-bottom: 5px; border-left: 5px solid #ff0000; background-color: #111; }
-    h1 { color: #ff0000; text-align: center; }
+    .stButton>button { 
+        background-color: #ff0000; color: white; width: 100%; border-radius: 12px; 
+        height: 60px; font-size: 20px; font-weight: bold; border: none; transition: 0.5s;
+    }
+    .stButton>button:hover { background-color: #990000; box-shadow: 0px 0px 30px #ff0000; cursor: pointer; }
+    .stTextArea>div>div>textarea { background-color: #050505 !important; color: #ffffff !important; border: 1px solid #ff0000 !important; }
+    .result-card { padding: 15px; border-radius: 10px; margin-bottom: 10px; border-right: 8px solid #ff0000; background-color: #111; display: flex; justify-content: space-between; align-items: center; }
+    h1 { color: #ff0000; text-align: center; font-weight: 900; letter-spacing: 3px; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🔴 TURBO EMAIL SUITE")
+st.title("🛡️ ULTRA EMAIL CHECKER")
+st.write("---")
 
-tab1, tab2 = st.tabs(["📧 Generator", "🔍 Real-Time Checker"])
+# خانة الـ API Key
+api_key = st.text_input("PASTE YOUR ABSTRACT API KEY HERE:", type="password")
 
-# --- التبويب الأول: التوليد ---
-with tab1:
-    st.subheader("Configuration")
-    c1, c2 = st.columns(2)
-    with c1:
-        prefix = st.text_input("First Char", "w")
-        domain_list = ["msn.com", "hotmail.com", "outlook.com", "gmail.com", "Custom Domain"]
-        choice = st.selectbox("Select Domain", domain_list)
-    with c2:
-        suffix = st.text_input("Suffix", "-")
-        count = st.number_input("Amount", 1, 50000, 10)
-    
-    final_domain = st.text_input("Enter Custom Domain:") if choice == "Custom Domain" else choice
+# خانة وضع الإيميلات
+emails_input = st.text_area("LIST YOUR EMAILS (ONE PER LINE):", height=250)
 
-    if st.button("GENERATE"):
-        res = [f"{prefix}{''.join(random.choices(string.ascii_lowercase + string.digits, k=6))}{suffix}@{final_domain}" for _ in range(count)]
-        st.text_area("Results", "\n".join(res), height=200)
+if st.button("RUN DEEP SCAN"):
+    if not api_key:
+        st.error("❗ PLEASE ENTER YOUR API KEY FIRST")
+    elif not emails_input:
+        st.warning("❗ PLEASE PASTE EMAILS TO SCAN")
+    else:
+        email_list = [e.strip() for e in emails_input.splitlines() if e.strip()]
+        st.info(f"🚀 Scanning {len(email_list)} emails... Please wait.")
+        
+        valid_count = 0
+        invalid_count = 0
+        
+        # مكان عرض النتائج المباشرة
+        results_container = st.container()
 
-# --- التبويب الثاني: الفاحص الذكي ---
-with tab2:
-    st.subheader("Proxy-Powered Availability Checker")
-    emails_to_check = st.text_area("Paste emails (one per line):", height=150)
-    
-    if st.button("START REAL-TIME CHECK"):
-        if emails_to_check:
-            email_list = [e.strip() for e in emails_to_check.splitlines() if e.strip()]
+        for email in email_list:
+            # طلب الفحص من السيرفر
+            url = f"https://emailvalidation.abstractapi.com/v1/?api_key={api_key}&email={email}"
             
-            # عدادات النتائج
-            available_count = 0
-            taken_count = 0
-            
-            # جلب البروكسيات في الخلفية
-            with st.spinner("Fetching background proxies..."):
-                try:
-                    proxy_res = requests.get("https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=1000")
-                    proxies = proxy_res.text.splitlines()
-                except:
-                    proxies = []
-
-            st.info(f"Checking {len(email_list)} emails using {len(proxies)} rotating proxies...")
-            
-            placeholder = st.empty() # مكان تحديث النتائج
-            
-            for email in email_list:
-                p = random.choice(proxies) if proxies else "Direct"
+            try:
+                response = requests.get(url)
+                data = response.json()
                 
-                # منطق الفحص (تم تحسينه قليلاً لكنه يظل تقديري للمواقع المحمية)
-                # الشركات الكبرى تتطلب فحص API حقيقي
-                status = random.choice(["Available", "Taken"]) 
+                # التحقق الحقيقي: هل الإيميل موجود؟
+                # deliverability: DELIVERABLE يعني موجود وشغال
+                is_valid = data.get("deliverability") == "DELIVERABLE"
                 
-                if status == "Available":
-                    available_count += 1
-                    st.markdown(f"<div class='result-box'>✅ {email} <br><small style='color:gray'>Proxy: {p}</small> - <b style='color:green'>AVAILABLE</b></div>", unsafe_allow_html=True)
+                if is_valid:
+                    valid_count += 1
+                    st.markdown(f"<div class='result-card' style='border-color: #00ff00;'><span>✅ <b>{email}</b></span> <span style='color:#00ff00'>AVAILABLE</span></div>", unsafe_allow_html=True)
                 else:
-                    taken_count += 1
-                    st.markdown(f"<div class='result-box' style='border-left: 5px solid gray;'>❌ {email} <br><small style='color:gray'>Proxy: {p}</small> - <b style='color:red'>TAKEN</b></div>", unsafe_allow_html=True)
+                    invalid_count += 1
+                    st.markdown(f"<div class='result-card' style='border-color: #ff0000;'><span>❌ <b>{email}</b></span> <span style='color:#ff0000'>TAKEN / INVALID</span></div>", unsafe_allow_html=True)
                 
-                time.sleep(0.05) # سرعة الفحص
+            except:
+                st.error(f"Error checking {email}")
             
-            # عرض الإحصائيات النهائية
-            st.markdown("---")
-            col_res1, col_res2 = st.columns(2)
-            col_res1.metric("TOTAL AVAILABLE ✅", available_count)
-            col_res2.metric("TOTAL TAKEN ❌", taken_count)
-            st.balloons()
-        else:
-            st.warning("Please enter emails first!")
+            # احتراماً لسرعة الـ API المجاني
+            time.sleep(0.3)
+
+        st.balloons()
+        st.success("SCAN COMPLETED!")
+        
+        # ملخص نهائي
+        c1, c2 = st.columns(2)
+        c1.metric("AVAILABLE ✅", valid_count)
+        c2.metric("TAKEN/INVALID ❌", invalid_count)
+        
