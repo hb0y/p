@@ -3,48 +3,43 @@ from psnaw_client import PSNAW
 import datetime
 
 # إعداد واجهة الصفحة
-st.set_page_config(page_title="PSN Info Tool", page_icon="🎮")
+st.set_page_config(page_title="PSN Scanner", page_icon="🎮")
 
-st.title("🎮 أداة فحص آيديات سوني")
-st.markdown("قم بإدخال البيانات المطلوبة للسحب")
+st.title("🎮 أداة سحب معلومات الآيدي")
 
 # مدخلات المستخدم
-npsso_token = st.text_input("كود NPSSO الخاص بك:", type="password", help="احصل عليه من رابط ssocookie")
-target_id = st.text_input("الآيدي المستهدف (Online ID):")
+npsso = st.text_input("كود NPSSO:", type="password")
+target_id = st.text_input("الآيدي (Online ID):")
 
-if st.button("بدء عملية السحب ✨"):
-    if npsso_token and target_id:
+if st.button("سحب البيانات ✨"):
+    if npsso and target_id:
         try:
-            # بدء الاتصال
-            client = PSNAW(npsso_token)
+            # محاولة الاتصال
+            client = PSNAW(npsso)
             user = client.user(online_id=target_id)
             
-            # سحب البيانات الأساسية
+            # جلب البيانات
             presence = user.get_presence()
             last_seen = presence.get("last_available_date")
             
-            st.success(f"تم جلب بيانات: {target_id}")
             st.divider()
-
-            # عرض النتائج بشكل مرتب
-            col1, col2 = st.columns([1, 2])
             
+            col1, col2 = st.columns([1, 2])
             with col1:
-                st.image(user.avatar_url, caption="Avatar", use_container_width=True)
+                st.image(user.avatar_url, width=150)
             
             with col2:
-                st.info(f"🆔 **الآيدي:** {user.online_id}")
+                st.subheader(f"آيدي: {user.online_id}")
                 st.write(f"🌍 **الريجون:** {user.region.upper()}")
-                st.write(f"🗣️ **اللغة:** {', '.join(user.languages)}")
+                st.write(f"🗣️ **اللغات:** {', '.join(user.languages)}")
                 
                 if last_seen:
                     dt = datetime.datetime.fromisoformat(last_seen.replace('Z', '+00:00'))
-                    st.write(f"🕒 **آخر ظهور:** {dt.strftime('%Y-%m-%d %H:%M:%S')}")
+                    st.write(f"🕒 **آخر ظهور:** {dt.strftime('%Y-%m-%d %H:%M')}")
                 else:
-                    st.write("🕒 **آخر ظهور:** مخفي من الخصوصية")
+                    st.write("🕒 **آخر ظهور:** مخفي")
                     
         except Exception as e:
-            st.error(f"خطأ: تأكد من صحة الـ NPSSO أو الآيدي.")
-            st.exception(e) # هذا السطر بيعلمك بالضبط وين المشكلة لو استمر الخطأ
+            st.error("حدث خطأ! تأكد من كود NPSSO أو الآيدي.")
     else:
-        st.warning("يرجى ملء جميع الخانات.")
+        st.warning("يرجى إدخال كافة البيانات.")
