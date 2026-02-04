@@ -1,32 +1,31 @@
 import streamlit as st
 import requests
 
+st.set_page_config(page_title="PS3 Avatar Tool", page_icon="🎮")
+
 st.title("PS3 Avatars Manager 🎮")
+st.markdown("---")
 
-# مدخلات المستخدم
-npsso_token = st.text_input("Enter NPSSO Token", type="password")
-product_id = st.text_input("Enter Avatar Product ID", placeholder="e.g. UP9000-NPUA80491_00-AVATAR0000000001")
-
-if st.button("Add to Cart"):
-    if npsso_token and product_id:
-        # ملاحظة: هنا نحتاج تحويل NPSSO لـ Access Token (سأعطيك الطريقة لاحقاً)
-        # للتبسيط الآن سنفترض أنك وضعت الـ Access Token مباشرة
-        
-        url = "https://cart.playstation.com/api/v1/users/me/cart/items"
-        headers = {
-            "Authorization": f"Bearer {npsso_token}", # التوكن النهائي
-            "Content-Type": "application/json"
+# دالة تحويل الـ NPSSO إلى Access Token
+def get_access_token(npsso_token):
+    try:
+        # رابط الحصول على كود التصديق
+        auth_url = "https://ca.account.sony.com/api/v1/oauth/authorize"
+        params = {
+            "access_type": "offline",
+            "client_id": "09515159-7237-43f0-9f0d-033593f1ee27", # Client ID رسمي لتطبيقات سوني
+            "response_type": "code",
+            "scope": "psn:mobile.v2.core psn:client.attributes",
+            "redirect_uri": "com.scee.psxandroid.sceplogin://redirect",
         }
-        data = {"id": product_id}
+        headers = {"Cookie": f"npsso={npsso_token}"}
         
-        try:
-            response = requests.post(url, json=data, headers=headers)
-            if response.status_code == 201 or response.status_code == 200:
-                st.success("✅ تم إضافة الافتار للسلة بنجاح!")
-            else:
-                st.error(f"❌ خطأ من سوني: {response.status_code}")
-                st.write(response.text)
-        except Exception as e:
-            st.error(f"حدث خطأ تقني: {e}")
-    else:
-        st.warning("الرجاء إدخال التوكن و ID الافتار")
+        # 1. طلب كود التصديق
+        res = requests.get(auth_url, params=params, headers=headers, allow_redirects=False)
+        auth_code = res.headers['Location'].split("code=")[1].split("&")[0]
+        
+        # 2. تبديل الكود بالتوكن النهائي
+        token_url = "https://ca.account.sony.com/api/v1/oauth/token"
+        data = {
+            "code": auth_code,
+            "redirect
