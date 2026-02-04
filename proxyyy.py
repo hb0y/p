@@ -1,43 +1,29 @@
-const axios = require('axios');
+import requests
 
-// دالة إضافة الافتار للسلة
-async function addToCart(accessToken, productId) {
-    // رابط سوني لإضافة المنتجات للسلة
-    const url = "https://cart.playstation.com/api/v1/users/me/cart/items";
-
-    // البيانات المطلوبة: الـ ID الخاص بالافتار
-    const data = {
-        "id": productId
-    };
-
-    const config = {
-        headers: {
-            'Authorization': `Bearer ${accessToken}`, // التوكن هنا
-            'Content-Type': 'application/json',
-            'Accept-Language': 'en-US', // مهم لتحديد الريجون
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' 
-        }
-    };
-
-    try {
-        const response = await axios.post(url, data, config);
-        console.log("✅ تمت الإضافة بنجاح!");
-        console.log("تفاصيل السلة الحالية:", response.data);
-    } catch (error) {
-        console.error("❌ فشلت العملية:");
-        if (error.response) {
-            console.error("السبب:", error.response.data.error.message);
-        } else {
-            console.error(error.message);
-        }
+def add_avatar_to_cart(npsso_token, product_id):
+    # تحويل الـ NPSSO إلى Access Token (هذه الخطوة ضرورية لأن سوني لا تقبل الـ NPSSO مباشرة في السلة)
+    # ملاحظة: تحتاج سكربت المصادقة لجلب الـ Access Token أولاً
+    access_token = "ضع_هنا_الـ_Access_Token" 
+    
+    url = "https://cart.playstation.com/api/v1/users/me/cart/items"
+    
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0"
     }
-}
+    
+    data = {
+        "id": product_id
+    }
 
-// --- مثال للاختبار ---
-// التوكن (يجب أن يكون صالحاً وغير منتهي)
-const myToken = "اكتب_هنا_التوكن_الخاص_بالحساب"; 
+    response = requests.post(url, json=data, headers=headers)
+    
+    if response.status_code == 201 or response.status_code == 200:
+        print("✅ تم إضافة الافتار للسلة بنجاح!")
+    else:
+        print(f"❌ فشل: {response.status_code}")
+        print(response.text)
 
-// الـ Product ID الخاص بالافتار (مثال لافتار ريجون أمريكي)
-const avatarID = "UP9000-NPUA80491_00-AVATAR0000000001"; 
-
-addToCart(myToken, avatarID);
+# تجربة
+# add_avatar_to_cart("TOKEN_HERE", "UP9000-NPUA80491_00-AVATAR0000000001")
