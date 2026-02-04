@@ -1,65 +1,43 @@
-import streamlit as st
-from psnaw_client import PSNAW
-import datetime
+const axios = require('axios');
 
-# إعداد الصفحة بثيم أسود
-st.set_page_config(page_title="PSN Hunter", page_icon="🕵️‍♂️", layout="centered")
+// دالة إضافة الافتار للسلة
+async function addToCart(accessToken, productId) {
+    // رابط سوني لإضافة المنتجات للسلة
+    const url = "https://cart.playstation.com/api/v1/users/me/cart/items";
 
-# CSS لتعديل الشكل وتوسيط المحتوى
-st.markdown("""
-    <style>
-    .main { background-color: #0e1117; color: white; }
-    .stTextInput { text-align: center; }
-    .block-container { padding-top: 2rem; text-align: center; }
-    </style>
-    """, unsafe_allow_html=True)
+    // البيانات المطلوبة: الـ ID الخاص بالافتار
+    const data = {
+        "id": productId
+    };
 
-st.title("🕵️‍♂️ PSN Info Scanner")
-st.write("ادخل البيانات لسحب تفاصيل الحساب")
+    const config = {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`, // التوكن هنا
+            'Content-Type': 'application/json',
+            'Accept-Language': 'en-US', // مهم لتحديد الريجون
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' 
+        }
+    };
 
-# الخيارات في المنتصف
-npsso = st.text_input("كود NPSSO الخاص بك:", type="password")
-target_id = st.text_input("اكتب آيدي السوني (Online ID):")
+    try {
+        const response = await axios.post(url, data, config);
+        console.log("✅ تمت الإضافة بنجاح!");
+        console.log("تفاصيل السلة الحالية:", response.data);
+    } catch (error) {
+        console.error("❌ فشلت العملية:");
+        if (error.response) {
+            console.error("السبب:", error.response.data.error.message);
+        } else {
+            console.error(error.message);
+        }
+    }
+}
 
-if st.button("فحص الحساب 🔍"):
-    if npsso and target_id:
-        try:
-            client = PSNAW(npsso)
-            user = client.user(online_id=target_id)
-            
-            # سحب البيانات
-            presence = user.get_presence()
-            trophies = user.trophy_summary()
-            
-            st.divider()
-            
-            # عرض الغلاف (Banner/Cover) إذا وجد
-            # ملاحظة: بعض الحسابات لا تملك غلاف عام
-            
-            # عرض الصورة الشخصية والمعلومات
-            st.image(user.avatar_url, width=150)
-            st.subheader(f"ID: {user.online_id}")
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("الريجون", user.region.upper())
-            with col2:
-                st.metric("المستوى", trophies.level)
-            with col3:
-                st.metric("التروفيز", trophies.earned_trophies)
+// --- مثال للاختبار ---
+// التوكن (يجب أن يكون صالحاً وغير منتهي)
+const myToken = "اكتب_هنا_التوكن_الخاص_بالحساب"; 
 
-            # تفاصيل التروفيز الدقيقة
-            st.write(f"🏆 **البلاتنيوم:** {trophies.platinum} | **الذهبي:** {trophies.gold}")
-            
-            # تاريخ الدخول
-            last_seen = presence.get("last_available_date")
-            if last_seen:
-                dt = datetime.datetime.fromisoformat(last_seen.replace('Z', '+00:00'))
-                st.info(f"🕒 آخر ظهور: {dt.strftime('%Y-%m-%d %H:%M')}")
-            else:
-                st.warning("🕒 آخر ظهور: مخفي")
+// الـ Product ID الخاص بالافتار (مثال لافتار ريجون أمريكي)
+const avatarID = "UP9000-NPUA80491_00-AVATAR0000000001"; 
 
-        except Exception as e:
-            st.error("خطأ: تأكد من الـ NPSSO أو أن الآيدي صحيح")
-    else:
-        st.warning("يرجى إكمال الخانات")
+addToCart(myToken, avatarID);
